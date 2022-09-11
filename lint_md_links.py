@@ -5,7 +5,7 @@ import sys
 from functools import lru_cache
 from typing import List
 
-from util import MD_LINK_PAT, MD_TITLE_PAT, md_create_anchor
+from .util import MD_LINK_PAT, MD_TITLE_PAT, md_create_anchor
 
 
 
