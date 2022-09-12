@@ -8,7 +8,6 @@ from typing import List
 from .util import MD_LINK_PAT, MD_TITLE_PAT, md_create_anchor
 
 
-
 @lru_cache
 def read(filename: str) -> str:
     with open(filename, "r", encoding="utf-8") as ifile:

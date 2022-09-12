@@ -9,6 +9,7 @@ MD_LINK_PAT = re.compile(r"\[([^\]]+)\]\(([^\)]+)\)")
 MD_TITLE_PAT = re.compile(r"^#(#+) (.+)$", re.MULTILINE)
 MD_LINE_BREAK_PAT = re.compile(r"\s*\\$")
 
+
 def generate_md_toc(filename: str) -> List[str]:
     ret = []
     with open(filename, "r", encoding="utf-8") as ifile:
@@ -21,7 +22,6 @@ def generate_md_toc(filename: str) -> List[str]:
                 link = f"[{m[2]}](#{title_link})"
                 ret.append(prefix + "- " + link + "\n")
     return ret
-
 
 
 def md_create_anchor(title: str) -> str:
@@ -61,6 +61,7 @@ def format_md_table(rows: List[Dict], column_names: List[str]) -> List[str]:
         lines.append(format_md_table_row(row, column_names, max_widths))
     return lines
 
+
 def convert_markdown_to_vimdoc(lines: List[str]) -> List[str]:
     while lines[0] == "\n":
         lines.pop(0)
@@ -94,6 +95,7 @@ def convert_markdown_to_vimdoc(lines: List[str]) -> List[str]:
         i += 1
     return lines
 
+
 def convert_md_section(
     filename: str,
     start_pat: str,
@@ -101,7 +103,7 @@ def convert_md_section(
     section_name: str,
     section_tag: str,
     inclusive: Tuple[bool, bool] = (False, False),
-) -> 'VimdocSection':
+) -> "VimdocSection":
     lines = read_section(filename, start_pat, end_pat, inclusive)
     lines = convert_markdown_to_vimdoc(lines)
     return VimdocSection(section_name, section_tag, lines)
@@ -276,7 +278,7 @@ class VimdocToc(VimdocSection):
 
 class Vimdoc:
     def __init__(self, filename: str, project: str, width: int = 80):
-        tags = [project.capitalize(), project, f'{project}.nvim']
+        tags = [project.capitalize(), project, f"{project}.nvim"]
         self.prefix = [f"*{filename}*\n", " ".join(f"*{tag}*" for tag in tags) + "\n"]
         self.sections: List[VimdocSection] = []
         self.project = project

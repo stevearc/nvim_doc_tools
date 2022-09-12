@@ -23,6 +23,7 @@ from pyparsing import (
     alphas,
     delimitedList,
 )
+
 from .util import format_md_table, indent, leftright, markdown_paragraph, wrap
 
 HERE = os.path.dirname(__file__)
