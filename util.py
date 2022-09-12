@@ -62,6 +62,15 @@ def format_md_table(rows: List[Dict], column_names: List[str]) -> List[str]:
     return lines
 
 
+def convert_md_link(match):
+    text = match[1]
+    dest = match[2]
+    if dest.startswith("#"):
+        return f"|{dest[1:]}|"
+    else:
+        return text
+
+
 def convert_markdown_to_vimdoc(lines: List[str]) -> List[str]:
     while lines[0] == "\n":
         lines.pop(0)
