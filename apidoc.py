@@ -227,7 +227,10 @@ def render_api_md(funcs: List[LuaFunc]) -> List[str]:
         if func.private or func.deprecated:
             continue
         args = ", ".join([param.name for param in func.params])
-        lines.append(f"### {func.name}({args})\n")
+        signature = f"{func.name}({args})"
+        if func.returns:
+            signature += ': ' + ', '.join([r.type for r in func.returns])
+        lines.append(f"### {signature}\n")
         lines.append("\n")
         lines.append(func.summary)
         lines.append("\n")
@@ -258,6 +261,11 @@ def render_api_md(funcs: List[LuaFunc]) -> List[str]:
             if any_subparams:
                 cols.append("")
             lines.extend(format_md_table(rows, cols))
+        if any([r.desc for r in func.returns]):
+            lines.append("\n")
+            lines.append("Returns:\n")
+            rows = [{'Type': r.type, 'Desc': r.desc} for r in func.returns]
+            lines.extend(format_md_table(rows, ['Type', 'Desc']))
         if func.note:
             lines.append("\n")
             lines.append("**Note:**\n")
