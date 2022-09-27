@@ -228,10 +228,11 @@ def render_api_md(funcs: List[LuaFunc]) -> List[str]:
             continue
         args = ", ".join([param.name for param in func.params])
         signature = f"{func.name}({args})"
+        lines.append(f"### {signature}\n")
         if func.returns:
             signature += ': ' + ', '.join([r.type for r in func.returns])
-        lines.append(f"### {signature}\n")
         lines.append("\n")
+        lines.append(f"`{signature}` \\\n")
         lines.append(func.summary)
         lines.append("\n")
         any_subparams = False

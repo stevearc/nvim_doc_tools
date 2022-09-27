@@ -25,8 +25,8 @@ def generate_md_toc(filename: str) -> List[str]:
 
 
 def md_create_anchor(title: str) -> str:
-    title = re.sub(r"[\+\(\),]", "", title.lower().replace(" ", "-"))
-    title = re.sub(r"\s", "-", title)
+    title = re.sub(r"\s", "-", title.lower())
+    title = re.sub(r"[^\w\-]", "", title.lower())
     return title
 
 
