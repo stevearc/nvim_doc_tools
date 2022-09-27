@@ -1,17 +1,16 @@
 import os
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import List
 
+from pyparsing.exceptions import ParseException
 from pyparsing import (
-    CharsNotIn,
     Forward,
     Keyword,
     LineEnd,
     LineStart,
     OneOrMore,
     Opt,
-    ParseException,
     ParserElement,
     QuotedString,
     Regex,
@@ -24,7 +23,7 @@ from pyparsing import (
     delimitedList,
 )
 
-from .util import format_md_table, indent, leftright, markdown_paragraph, wrap
+from .util import format_md_table, indent, leftright, wrap
 
 HERE = os.path.dirname(__file__)
 ROOT = os.path.abspath(os.path.join(HERE, os.path.pardir))
@@ -274,6 +273,20 @@ def render_api_md(funcs: List[LuaFunc]) -> List[str]:
         lines.append("\n")
     return lines
 
+def format_returns(returns: List[LuaReturn], indent: int) -> List[str]:
+    lines = []
+    for r in returns:
+        prefix = indent * " "
+        line = prefix + f"`{r.type}`" + " "
+        sub_indent = min(len(prefix), indent + 2)
+        desc = wrap(r.desc, indent=len(line), sub_indent=sub_indent)
+        if desc:
+            desc[0] = line + desc[0].lstrip()
+            lines.extend(desc)
+        else:
+            lines.append(line.rstrip() + "\n")
+
+    return lines
 
 def format_params(params: List[LuaParam], indent: int) -> List[str]:
     lines = []
@@ -307,12 +320,19 @@ def render_api_vimdoc(project: str, funcs: List[LuaFunc]) -> List[str]:
         if func.private or func.deprecated:
             continue
         args = ", ".join(["{" + param.name + "}" for param in func.params])
-        lines.append(leftright(f"{func.name}({args})", f"*{project}.{func.name}*"))
+        signature = f"{func.name}({args})"
+        if func.returns:
+            signature += ': ' + ', '.join([r.type for r in func.returns])
+        lines.append(leftright(signature, f"*{project}.{func.name}*"))
         lines.extend(wrap(func.summary, 4))
         lines.append("\n")
         if func.params:
             lines.append(4 * " " + "Parameters:\n")
             lines.extend(format_params(func.params, 6))
+
+        if any([r.desc for r in func.returns]):
+            lines.append(4 * " " + "Returns:\n")
+            lines.extend(format_returns(func.returns, 6))
 
         if func.note:
             lines.append("\n")
