@@ -1,9 +1,8 @@
 import os
 import re
 from dataclasses import dataclass, field
-from typing import List
+from typing import Callable, List
 
-from pyparsing.exceptions import ParseException
 from pyparsing import (
     Forward,
     Keyword,
@@ -22,6 +21,7 @@ from pyparsing import (
     alphas,
     delimitedList,
 )
+from pyparsing.exceptions import ParseException
 
 from .util import format_md_table, indent, leftright, wrap
 
@@ -42,6 +42,7 @@ class LuaFunc:
     note: str = ""
     private: bool = False
     deprecated: bool = False
+    raw_annotation: List[str] = field(default_factory=list)
 
     @classmethod
     def parse_annotation(cls, name: str, lines: List[str]) -> "LuaFunc":
@@ -216,6 +217,7 @@ def parse_functions(filename: str) -> List[LuaFunc]:
                 if m:
                     func = LuaFunc.parse_annotation(m[1], chunk)
                     if func is not None:
+                        func.raw_annotation = chunk
                         funcs.append(func)
                 chunk = []
     return funcs
@@ -230,7 +232,7 @@ def render_api_md(funcs: List[LuaFunc]) -> List[str]:
         signature = f"{func.name}({args})"
         lines.append(f"### {signature}\n")
         if func.returns:
-            signature += ': ' + ', '.join([r.type for r in func.returns])
+            signature += ": " + ", ".join([r.type for r in func.returns])
         lines.append("\n")
         lines.append(f"`{signature}` \\\n")
         lines.append(func.summary)
@@ -265,8 +267,8 @@ def render_api_md(funcs: List[LuaFunc]) -> List[str]:
         if any([r.desc for r in func.returns]):
             lines.append("\n")
             lines.append("Returns:\n")
-            rows = [{'Type': r.type, 'Desc': r.desc} for r in func.returns]
-            lines.extend(format_md_table(rows, ['Type', 'Desc']))
+            rows = [{"Type": r.type, "Desc": r.desc} for r in func.returns]
+            lines.extend(format_md_table(rows, ["Type", "Desc"]))
         if func.note:
             lines.append("\n")
             lines.append("**Note:**\n")
@@ -282,6 +284,7 @@ def render_api_md(funcs: List[LuaFunc]) -> List[str]:
         lines.append("\n")
     return lines
 
+
 def format_returns(returns: List[LuaReturn], indent: int) -> List[str]:
     lines = []
     for r in returns:
@@ -296,6 +299,7 @@ def format_returns(returns: List[LuaReturn], indent: int) -> List[str]:
             lines.append(line.rstrip() + "\n")
 
     return lines
+
 
 def format_params(params: List[LuaParam], indent: int) -> List[str]:
     lines = []
@@ -331,7 +335,7 @@ def render_api_vimdoc(project: str, funcs: List[LuaFunc]) -> List[str]:
         args = ", ".join(["{" + param.name + "}" for param in func.params])
         signature = f"{func.name}({args})"
         if func.returns:
-            signature += ': ' + ', '.join([r.type for r in func.returns])
+            signature += ": " + ", ".join([r.type for r in func.returns])
         lines.append(leftright(signature, f"*{project}.{func.name}*"))
         lines.extend(wrap(func.summary, 4))
         lines.append("\n")
@@ -354,3 +358,13 @@ def render_api_vimdoc(project: str, funcs: List[LuaFunc]) -> List[str]:
             lines.append("<\n")
         lines.append("\n")
     return lines
+
+
+def render_api(funcs: List[LuaFunc], format: Callable[[LuaFunc], str]) -> List[str]:
+    ret = []
+    for func in funcs:
+        if func.private:
+            continue
+        ret.extend(func.raw_annotation)
+        ret.append(format(func) + "\n")
+    return ret
