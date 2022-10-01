@@ -48,6 +48,8 @@ def format_md_table(rows: List[Dict], column_names: List[str]) -> List[str]:
     for row in rows:
         for col in column_names:
             max_widths[col] = max(max_widths[col], len(row.get(col, "")))
+    for col in column_names:
+        max_widths[col] = max(max_widths[col], len(col))
     lines = []
     titles = []
     for col in column_names:
