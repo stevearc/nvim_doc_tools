@@ -44,12 +44,10 @@ def format_md_table_row(
 
 
 def format_md_table(rows: List[Dict], column_names: List[str]) -> List[str]:
-    max_widths: Dict[str, int] = defaultdict(lambda: 1)
+    max_widths: Dict[str, int] = {col: max(3, len(col)) for col in column_names}
     for row in rows:
         for col in column_names:
             max_widths[col] = max(max_widths[col], len(row.get(col, "")))
-    for col in column_names:
-        max_widths[col] = max(max_widths[col], len(col))
     lines = []
     titles = []
     for col in column_names:
