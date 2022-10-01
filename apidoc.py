@@ -234,9 +234,13 @@ def render_api_md(funcs: List[LuaFunc]) -> List[str]:
         if func.returns:
             signature += ": " + ", ".join([r.type for r in func.returns])
         lines.append("\n")
-        lines.append(f"`{signature}` \\\n")
-        lines.append(func.summary)
-        lines.append("\n")
+        lines.append(f"`{signature}`")
+        if func.summary:
+            lines.append(" \\\n")
+            lines.append(func.summary)
+            lines.append("\n\n")
+        else:
+            lines.append("\n\n")
         any_subparams = False
         if func.params:
             rows = []
