@@ -10,17 +10,18 @@ MD_TITLE_PAT = re.compile(r"^#(#+) (.+)$", re.MULTILINE)
 MD_LINE_BREAK_PAT = re.compile(r"\s*\\$")
 
 
-def generate_md_toc(filename: str) -> List[str]:
+def generate_md_toc(filename: str, max_level: int = 99) -> List[str]:
     ret = []
     with open(filename, "r", encoding="utf-8") as ifile:
         for line in ifile:
             m = MD_TITLE_PAT.match(line)
             if m:
                 level = len(m[1]) - 1
-                prefix = "  " * level
-                title_link = md_create_anchor(m[2])
-                link = f"[{m[2]}](#{title_link})"
-                ret.append(prefix + "- " + link + "\n")
+                if level < max_level:
+                    prefix = "  " * level
+                    title_link = md_create_anchor(m[2])
+                    link = f"[{m[2]}](#{title_link})"
+                    ret.append(prefix + "- " + link + "\n")
     return ret
 
 
