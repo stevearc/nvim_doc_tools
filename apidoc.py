@@ -223,14 +223,14 @@ def parse_functions(filename: str) -> List[LuaFunc]:
     return funcs
 
 
-def render_api_md(funcs: List[LuaFunc]) -> List[str]:
+def render_api_md(funcs: List[LuaFunc], level: int=3) -> List[str]:
     lines = []
     for func in funcs:
         if func.private or func.deprecated:
             continue
         args = ", ".join([param.name for param in func.params])
         signature = f"{func.name}({args})"
-        lines.append(f"### {signature}\n")
+        lines.append(level * '#' + f" {signature}\n")
         if func.returns:
             signature += ": " + ", ".join([r.type for r in func.returns])
         lines.append("\n")
