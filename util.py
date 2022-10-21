@@ -1,8 +1,10 @@
 """Utility methods for generating docs"""
+import json
 import re
+import subprocess
 import textwrap
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 MD_BOLD_PAT = re.compile(r"\*\*([^\*]+)\*\*")
 MD_LINK_PAT = re.compile(r"\[([^\]]+)\]\(([^\)]+)\)")
@@ -240,6 +242,18 @@ def trim_newlines(lines: List[str]) -> List[str]:
     while lines and lines[-1] == "\n":
         lines.pop()
     return lines
+
+
+def read_nvim_json(lua: str) -> Any:
+    cmd = f"nvim --headless --noplugin -u /dev/null -c 'set runtimepath+=.' -c 'lua print(vim.json.encode({lua}))' +qall"
+    print(cmd)
+    code, txt = subprocess.getstatusoutput(cmd)
+    if code != 0:
+        raise Exception(f"Error exporting data from nvim: {txt}")
+    try:
+        return json.loads(txt)
+    except json.JSONDecodeError as e:
+        raise Exception(f"Json decode error: {txt}") from e
 
 
 class VimdocSection:
