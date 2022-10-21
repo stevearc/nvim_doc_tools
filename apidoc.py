@@ -23,13 +23,9 @@ from pyparsing import (
 )
 from pyparsing.exceptions import ParseException
 
-from .util import format_md_table, indent, leftright, wrap
-
-HERE = os.path.dirname(__file__)
-ROOT = os.path.abspath(os.path.join(HERE, os.path.pardir))
-DOC = os.path.join(ROOT, "doc")
-
 FN_RE = re.compile(r"^M\.(\w+)\s*=")
+
+__all__ = ["LuaFunc", "LuaParam", "LuaReturn", "parse_functions", "render_api"]
 
 
 @dataclass
@@ -221,147 +217,6 @@ def parse_functions(filename: str) -> List[LuaFunc]:
                         funcs.append(func)
                 chunk = []
     return funcs
-
-
-def render_api_md(funcs: List[LuaFunc], level: int = 3) -> List[str]:
-    lines = []
-    for func in funcs:
-        if func.private or func.deprecated:
-            continue
-        args = ", ".join([param.name for param in func.params])
-        signature = f"{func.name}({args})"
-        lines.append(level * "#" + f" {signature}\n")
-        if func.returns:
-            signature += ": " + ", ".join([r.type for r in func.returns])
-        lines.append("\n")
-        lines.append(f"`{signature}`")
-        if func.summary:
-            lines.append(" \\\n")
-            lines.append(func.summary)
-            lines.append("\n\n")
-        else:
-            lines.append("\n\n")
-        any_subparams = False
-        if func.params:
-            rows = []
-            for param in func.params:
-                ftype = param.type.replace("|", r"\|")
-                rows.append(
-                    {
-                        "Param": param.name,
-                        "Type": f"`{ftype}`",
-                        "Desc": param.desc,
-                    }
-                )
-                for subp in param.subparams:
-                    any_subparams = True
-                    ftype = subp.type.replace("|", r"\|")
-                    rows.append(
-                        {
-                            "Type": subp.name,
-                            "Desc": f"`{ftype}`",
-                            "": subp.desc,
-                        }
-                    )
-
-            cols = ["Param", "Type", "Desc"]
-            if any_subparams:
-                cols.append("")
-            lines.extend(format_md_table(rows, cols))
-        if any([r.desc for r in func.returns]):
-            lines.append("\n")
-            lines.append("Returns:\n")
-            rows = [{"Type": r.type, "Desc": r.desc} for r in func.returns]
-            lines.extend(format_md_table(rows, ["Type", "Desc"]))
-        if func.note:
-            lines.append("\n")
-            lines.append("**Note:**\n")
-            lines.append("<pre>\n")
-            lines.append(func.note)
-            lines.append("</pre>\n")
-        if func.example:
-            lines.append("\n")
-            lines.append("**Examples:**\n")
-            lines.append("```lua\n")
-            lines.append(func.example)
-            lines.append("```\n")
-        lines.append("\n")
-    return lines
-
-
-def format_returns(returns: List[LuaReturn], indent: int) -> List[str]:
-    lines = []
-    for r in returns:
-        prefix = indent * " "
-        line = prefix + f"`{r.type}`" + " "
-        sub_indent = min(len(prefix), indent + 2)
-        desc = wrap(r.desc, indent=len(line), sub_indent=sub_indent)
-        if desc:
-            desc[0] = line + desc[0].lstrip()
-            lines.extend(desc)
-        else:
-            lines.append(line.rstrip() + "\n")
-
-    return lines
-
-
-def format_params(params: List[LuaParam], indent: int) -> List[str]:
-    lines = []
-    # Ignore params longer than 16 chars. They are outliers and will ruin the formatting
-    max_param = max([len(param.name) for param in params if len(param.name) <= 16]) + 1
-    for param in params:
-        prefix = (
-            indent * " "
-            + "{"
-            + f"{param.name}"
-            + "}".ljust(max_param - len(param.name))
-            + " "
-        )
-        line = prefix + f"`{param.type}`" + " "
-        sub_indent = min(len(prefix), max_param + indent + 2)
-        desc = wrap(param.desc, indent=len(line), sub_indent=sub_indent)
-        if desc:
-            desc[0] = line + desc[0].lstrip()
-            lines.extend(desc)
-        else:
-            lines.append(line.rstrip() + "\n")
-        if param.subparams:
-            lines.extend(format_params(param.subparams, 10))
-
-    return lines
-
-
-def render_api_vimdoc(project: str, funcs: List[LuaFunc]) -> List[str]:
-    lines = []
-    for func in funcs:
-        if func.private or func.deprecated:
-            continue
-        args = ", ".join(["{" + param.name + "}" for param in func.params])
-        signature = f"{func.name}({args})"
-        if func.returns:
-            signature += ": " + ", ".join([r.type for r in func.returns])
-        lines.append(leftright(signature, f"*{project}.{func.name}*"))
-        lines.extend(wrap(func.summary, 4))
-        lines.append("\n")
-        if func.params:
-            lines.append(4 * " " + "Parameters:\n")
-            lines.extend(format_params(func.params, 6))
-
-        if any([r.desc for r in func.returns]):
-            lines.append(4 * " " + "Returns:\n")
-            lines.extend(format_returns(func.returns, 6))
-
-        if func.note:
-            lines.append("\n")
-            lines.append(4 * " " + "Note:\n")
-            lines.extend(indent(func.note.splitlines(), 6))
-        if func.example:
-            lines.append("\n")
-            lines.append(4 * " " + "Examples: >\n")
-            lines.extend(indent(func.example.splitlines(), 6))
-            lines.append("<\n")
-        lines.append("\n")
-    return lines
 
 
 def render_api(funcs: List[LuaFunc], format: Callable[[LuaFunc], str]) -> List[str]:

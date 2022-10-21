@@ -5,7 +5,7 @@ import sys
 from functools import lru_cache
 from typing import List
 
-from .util import MD_LINK_PAT, MD_TITLE_PAT, md_create_anchor
+from .markdown import MD_LINK_PAT, MD_TITLE_PAT, create_md_anchor
 
 
 @lru_cache
@@ -21,7 +21,7 @@ def validate_anchor(filename: str, anchor: str) -> bool:
         link_match = MD_LINK_PAT.match(title)
         if link_match:
             title = link_match[1]
-        if anchor == md_create_anchor(title):
+        if anchor == create_md_anchor(title):
             return True
     return False
 
