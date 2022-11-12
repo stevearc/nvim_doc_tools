@@ -196,7 +196,9 @@ def format_vimdoc_returns(returns: List[LuaReturn], indent: int) -> List[str]:
 def format_vimdoc_params(params: List[LuaParam], indent: int) -> List[str]:
     lines = []
     # Ignore params longer than 16 chars. They are outliers and will ruin the formatting
-    max_param = max([len(param.name) for param in params if len(param.name) <= 16]) + 1
+    max_param = (
+        max([len(param.name) for param in params if len(param.name) <= 16] or [8]) + 1
+    )
     for param in params:
         prefix = (
             indent * " "
