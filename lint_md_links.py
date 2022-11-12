@@ -30,27 +30,38 @@ def lint_file(filename: str, root: str) -> List[str]:
     errors = []
     text = read(filename)
 
-    for match in re.finditer(MD_LINK_PAT, text):
-        link = match[2]
-        if re.match(r"^<?http", link):
-            continue
-        pieces = link.split("#")
-        if len(pieces) == 1:
-            linkfile, anchor = pieces[0], None
-        elif len(pieces) == 2:
-            linkfile, anchor = pieces
-        else:
-            raise ValueError(f"Invalid link {link}")
-        if linkfile:
-            abs_linkfile = os.path.join(os.path.dirname(filename), linkfile)
-        else:
-            abs_linkfile = filename
+    inside_code_block = False
 
-        relfile = os.path.relpath(filename, root)
-        if not os.path.exists(abs_linkfile):
-            errors.append(f"{relfile} invalid link: {link}")
-        elif anchor and not validate_anchor(abs_linkfile, anchor):
-            errors.append(f"{relfile} invalid link anchor: {link}")
+    inside_code_block = False
+    with open(filename, "r", encoding="utf-8") as ifile:
+        for line in ifile:
+            if inside_code_block:
+                inside_code_block = not re.match(r'^```', line)
+                continue
+            elif re.match(r'^```', line):
+                inside_code_block = True
+                continue
+            for match in re.finditer(MD_LINK_PAT, line):
+                link = match[2]
+                if re.match(r"^<?http", link):
+                    continue
+                pieces = link.split("#")
+                if len(pieces) == 1:
+                    linkfile, anchor = pieces[0], None
+                elif len(pieces) == 2:
+                    linkfile, anchor = pieces
+                else:
+                    raise ValueError(f"Invalid link {link}")
+                if linkfile:
+                    abs_linkfile = os.path.join(os.path.dirname(filename), linkfile)
+                else:
+                    abs_linkfile = filename
+
+                relfile = os.path.relpath(filename, root)
+                if not os.path.exists(abs_linkfile):
+                    errors.append(f"{relfile} invalid link: {link}")
+                elif anchor and not validate_anchor(abs_linkfile, anchor):
+                    errors.append(f"{relfile} invalid link anchor: {link}")
 
     return errors
 
