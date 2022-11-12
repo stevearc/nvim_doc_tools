@@ -36,9 +36,9 @@ def lint_file(filename: str, root: str) -> List[str]:
     with open(filename, "r", encoding="utf-8") as ifile:
         for line in ifile:
             if inside_code_block:
-                inside_code_block = not re.match(r'^```', line)
+                inside_code_block = not re.match(r"^```", line)
                 continue
-            elif re.match(r'^```', line):
+            elif re.match(r"^```", line):
                 inside_code_block = True
                 continue
             for match in re.finditer(MD_LINK_PAT, line):
