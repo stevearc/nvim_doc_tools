@@ -1,10 +1,5 @@
-import json
 import re
-import subprocess
-import textwrap
-from collections import defaultdict
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, Iterable, Iterator, List, Union
 
 from .apidoc import LuaFunc
 from .util import Command
@@ -26,18 +21,29 @@ __all__ = [
 ]
 
 
-def generate_md_toc(filename: str, max_level: int = 99) -> List[str]:
-    ret = []
+def file_iter(filename: str) -> Iterator[str]:
     with open(filename, "r", encoding="utf-8") as ifile:
-        for line in ifile:
-            m = MD_TITLE_PAT.match(line)
-            if m:
-                level = len(m[1]) - 1
-                if level < max_level:
-                    prefix = "  " * level
-                    title_link = create_md_anchor(m[2])
-                    link = f"[{m[2]}](#{title_link})"
-                    ret.append(prefix + "- " + link + "\n")
+        yield from ifile
+
+
+def generate_md_toc(
+    filename_or_lines: Union[str, List[str]], max_level: int = 99
+) -> List[str]:
+    ret = []
+    lines: Iterable[str] = []
+    if isinstance(filename_or_lines, str):
+        lines = file_iter(filename_or_lines)
+    else:
+        lines = filename_or_lines
+    for line in lines:
+        m = MD_TITLE_PAT.match(line)
+        if m:
+            level = len(m[1]) - 1
+            if level < max_level:
+                prefix = "  " * level
+                title_link = create_md_anchor(m[2])
+                link = f"[{m[2]}](#{title_link})"
+                ret.append(prefix + "- " + link + "\n")
     return ret
 
 

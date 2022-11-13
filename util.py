@@ -3,8 +3,7 @@ import json
 import re
 import subprocess
 import textwrap
-from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 __all__ = [
@@ -82,23 +81,31 @@ def replace_section(
 def read_section(
     filename: str,
     start_pat: str,
-    end_pat: str,
+    end_pat: Optional[str],
     inclusive: Tuple[bool, bool] = (False, False),
 ) -> List[str]:
     lines = []
+    found_section = False
     with open(filename, "r", encoding="utf-8") as ifile:
         inside_section = False
         for line in ifile:
             if inside_section:
-                if re.match(end_pat, line):
+                if end_pat and re.match(end_pat, line):
+                    inside_section = False
                     if inclusive[1]:
                         lines.append(line)
                     break
                 lines.append(line)
             elif re.match(start_pat, line):
+                found_section = True
                 inside_section = True
                 if inclusive[0]:
                     lines.append(line)
+    if end_pat is None:
+        inside_section = False
+    if inside_section or not found_section:
+        print("debug", inside_section, found_section)
+        raise Exception(f"could not find file section {start_pat} in {filename}")
     return lines
 
 
