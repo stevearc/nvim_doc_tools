@@ -117,6 +117,7 @@ lua_list = (
     | Keyword("number[]")
     | Keyword("any[]")
     | Keyword("boolean[]")
+    | Keyword("table[]")
 )
 lua_table = (
     Keyword("table") + "<" + lua_type + "," + Opt(White()) + lua_type + ">"
@@ -188,10 +189,7 @@ tag_note = (
     .setParseAction(lambda p: "".join(p.asList()))
 )
 tag_return = (
-    Suppress("@return")
-    + lua_type
-    + Opt(Regex(".+").setName("desc"))
-    + Suppress(LineEnd())
+    Suppress("@return") + lua_type + Regex(".*").setName("desc") + Suppress(LineEnd())
 ).setParseAction(LuaReturn.from_parser)
 summary = Regex(r"^[^@].+").setResultsName("summary") + Suppress(LineEnd())
 
