@@ -26,7 +26,10 @@ def indent(lines: List[str], amount: int) -> List[str]:
         if not line.endswith("\n"):
             line += "\n"
         if amount >= 0:
-            ret.append(" " * amount + line)
+            if re.match(r"^\s*$", line):
+                ret.append(line)
+            else:
+                ret.append(" " * amount + line)
         else:
             space = re.match(r"[ \t]+", line)
             if space:
