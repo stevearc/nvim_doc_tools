@@ -23,7 +23,7 @@ from pyparsing import (
 )
 from pyparsing.exceptions import ParseException
 
-FN_RE = re.compile(r"^M\.(\w+)\s*=")
+FN_RE = re.compile(r"^M\.(\w+)\s*=|^function ([A-Z][A-Za-z0-9_:\.]*)\s*\(")
 
 __all__ = ["LuaFunc", "LuaParam", "LuaReturn", "parse_functions", "render_api"]
 
@@ -209,7 +209,7 @@ def parse_functions(filename: str) -> List[LuaFunc]:
             elif chunk:
                 m = FN_RE.match(line)
                 if m:
-                    func = LuaFunc.parse_annotation(m[1], chunk)
+                    func = LuaFunc.parse_annotation(m[1] or m[2], chunk)
                     if func is not None:
                         func.raw_annotation = chunk
                         funcs.append(func)
