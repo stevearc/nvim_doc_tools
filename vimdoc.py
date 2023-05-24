@@ -83,7 +83,7 @@ class Vimdoc:
             toc.entries.append((section.name, section.tag))
             body.extend(section.render())
         body.append(self.width * "=" + "\n")
-        body.append("vim:tw=80:ts=2:ft=help:norl:\n")
+        body.append("vim:tw=80:ts=2:ft=help:norl:syntax=help:\n")
         return header + toc.render() + body
 
 
