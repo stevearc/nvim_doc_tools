@@ -142,7 +142,8 @@ def convert_markdown_to_vimdoc(lines: List[str]) -> List[str]:
         if line.startswith("```"):
             code_block = not code_block
             if code_block:
-                lines[i] = ">\n"
+                lang = line[3:].strip()
+                lines[i] = f">{lang}\n"
             else:
                 lines[i] = "<\n"
         else:
