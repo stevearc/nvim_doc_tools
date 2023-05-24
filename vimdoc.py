@@ -247,7 +247,7 @@ def render_vimdoc_api(project: str, funcs: List[LuaFunc]) -> List[str]:
             lines.extend(indent(func.note.splitlines(), 6))
         if func.example:
             lines.append("\n")
-            lines.append(4 * " " + "Examples: >\n")
+            lines.append(4 * " " + "Examples: >lua\n")
             lines.extend(indent(func.example.splitlines(), 6))
             lines.append("<\n")
         lines.append("\n")
