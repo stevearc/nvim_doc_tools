@@ -63,7 +63,7 @@ class VimdocToc(VimdocSection):
         for i, (name, tag) in enumerate(self.entries):
             left = self.padding * " " + f"{i+1}. {name.capitalize()}"
             tag_start = self.width - 2 * self.padding - vimlen(tag)
-            lines.append(left.ljust(tag_start, ".") + f"|{tag}|\n")
+            lines.append(left.ljust(tag_start, " ") + f"|{tag}|\n")
         return lines
 
 
