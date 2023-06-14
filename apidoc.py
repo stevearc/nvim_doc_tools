@@ -1,7 +1,7 @@
 import os
 import re
 from dataclasses import dataclass, field
-from typing import Callable, List
+from typing import Callable, Iterable, List
 
 from pyparsing import (
     Forward,
@@ -198,23 +198,26 @@ tag <<= tag_param | tag_private | tag_return | tag_example | tag_note | tag_depr
 annotation = Opt(summary) + ZeroOrMore(tag) + Suppress(ZeroOrMore(White()))
 
 
-def parse_functions(filename: str) -> List[LuaFunc]:
+def _parse_lines(lines: Iterable[str]) -> List[LuaFunc]:
     funcs = []
-
-    with open(filename, "r", encoding="utf-8") as ifile:
-        chunk = []
-        for line in ifile:
-            if line.startswith("---"):
-                chunk.append(line)
-            elif chunk:
-                m = FN_RE.match(line)
-                if m:
-                    func = LuaFunc.parse_annotation(m[1] or m[2], chunk)
-                    if func is not None:
-                        func.raw_annotation = chunk
-                        funcs.append(func)
-                chunk = []
+    chunk = []
+    for line in lines:
+        if line.startswith("---"):
+            chunk.append(line)
+        elif chunk:
+            m = FN_RE.match(line)
+            if m:
+                func = LuaFunc.parse_annotation(m[1] or m[2], chunk)
+                if func is not None:
+                    func.raw_annotation = chunk
+                    funcs.append(func)
+            chunk = []
     return funcs
+
+
+def parse_functions(filename: str) -> List[LuaFunc]:
+    with open(filename, "r", encoding="utf-8") as ifile:
+        return _parse_lines(ifile)
 
 
 def render_api(funcs: List[LuaFunc], format: Callable[[LuaFunc], str]) -> List[str]:
