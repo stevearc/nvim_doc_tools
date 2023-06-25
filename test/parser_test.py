@@ -6,6 +6,7 @@ def test_parse_function() -> None:
 ---This is a function
 ---@param varnil nil
 ---@param varstring string this is a string
+---@param varoptstring? string this is an optional string
 ---@param varinteger integer this is a integer
 ---@param varboolean boolean this is a boolean
 ---@param varnumber number this is a number
@@ -41,6 +42,7 @@ end
     assert func.params == [
         apidoc.LuaParam("varnil", "nil"),
         apidoc.LuaParam("varstring", "string", "this is a string"),
+        apidoc.LuaParam("varoptstring", "nil|string", "this is an optional string"),
         apidoc.LuaParam("varinteger", "integer", "this is a integer"),
         apidoc.LuaParam("varboolean", "boolean", "this is a boolean"),
         apidoc.LuaParam("varnumber", "number", "this is a number"),

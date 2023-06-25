@@ -8,6 +8,7 @@ from pyparsing import (
     Keyword,
     LineEnd,
     LineStart,
+    Literal,
     OneOrMore,
     Opt,
     ParserElement,
@@ -77,9 +78,12 @@ class LuaParam:
     @classmethod
     def from_parser(cls, p):
         sp = p["subparams"].asList() if "subparams" in p else []
+        ptype = p["type"]
+        if "optional" in p:
+            ptype = "nil|" + ptype
         return cls(
             p["name"],
-            p["type"],
+            ptype,
             desc=p.get("desc", ""),
             subparams=sp,
         )
@@ -143,6 +147,7 @@ subparam = (
     Suppress(LineStart())
     + Suppress(White())
     + varname.setResultsName("name")
+    + Opt(Literal("?")).setResultsName("optional")
     + lua_type.setResultsName("type")
     + Opt(Regex(".+").setResultsName("desc"))
     + Suppress(LineEnd())
@@ -150,6 +155,7 @@ subparam = (
 tag_param = (
     Suppress("@param")
     + varname.setResultsName("name")
+    + Opt(Literal("?")).setResultsName("optional")
     + lua_type.setResultsName("type")
     + Opt(Regex(".+").setResultsName("desc"))
     + Suppress(LineEnd())
