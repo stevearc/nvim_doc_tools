@@ -213,6 +213,10 @@ def _parse_lines(lines: Iterable[str]) -> List[LuaFunc]:
         elif chunk:
             m = FN_RE.match(line)
             if m:
+                # temporary hack: ignore @type module variables
+                if any([c.startswith("---@type") for c in chunk]):
+                    chunk = []
+                    continue
                 func = LuaFunc.parse_annotation(m[1] or m[2], chunk)
                 if func is not None:
                     func.raw_annotation = chunk
