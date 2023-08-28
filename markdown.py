@@ -154,8 +154,7 @@ def render_md_api(funcs: List[LuaFunc], level: int = 3) -> List[str]:
                 cols.append("")
             lines.extend(format_md_table(rows, cols))
         if any([r.desc for r in func.returns]):
-            lines.append("\n")
-            lines.append("Returns:\n")
+            lines.extend(["\n", "Returns:\n", "\n"])
             rows = [{"Type": r.type, "Desc": r.desc} for r in func.returns]
             lines.extend(format_md_table(rows, ["Type", "Desc"]))
         if func.note:
