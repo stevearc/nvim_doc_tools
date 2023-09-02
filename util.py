@@ -66,7 +66,7 @@ def replace_section(
                     file_lines = postfix_lines
                     file_lines.append(line)
             else:
-                if re.match(start_pat, line):
+                if not found_section and re.match(start_pat, line):
                     inside_section = True
                     found_section = True
                 file_lines.append(line)
