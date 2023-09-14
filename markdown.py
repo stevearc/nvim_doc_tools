@@ -8,6 +8,7 @@ MD_TITLE_PAT = re.compile(r"^#(#+) (.+)$", re.MULTILINE)
 MD_BOLD_PAT = re.compile(r"\*\*([^\*]+)\*\*")
 MD_LINK_PAT = re.compile(r"\[([^\]]+)\]\(([^\)]+)\)")
 MD_LINE_BREAK_PAT = re.compile(r"\s*\\$")
+VIMDOC_LINK_PAT = re.compile(r"\B\|([^|]+)\|\B")
 
 
 __all__ = [
@@ -131,21 +132,24 @@ def render_md_api(funcs: List[LuaFunc], level: int = 3) -> List[str]:
             rows = []
             for param in func.params:
                 ftype = param.type.replace("|", r"\|")
+                # Replace vimdoc links |target|
+                desc = VIMDOC_LINK_PAT.sub(r"\1", param.desc)
                 rows.append(
                     {
                         "Param": param.name,
                         "Type": f"`{ftype}`",
-                        "Desc": param.desc,
+                        "Desc": desc,
                     }
                 )
                 for subp in param.subparams:
                     any_subparams = True
                     ftype = subp.type.replace("|", r"\|")
+                    desc = VIMDOC_LINK_PAT.sub(r"\1", subp.desc)
                     rows.append(
                         {
                             "Type": subp.name,
                             "Desc": f"`{ftype}`",
-                            "": subp.desc,
+                            "": desc,
                         }
                     )
 
