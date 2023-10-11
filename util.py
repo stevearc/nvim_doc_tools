@@ -168,6 +168,7 @@ class Command:
     args: str = ""
     deprecated: Optional[Dict] = None
     long_desc: str = ""
+    meta: Optional[Dict] = None
 
 
 def commands_from_json(data: Any) -> List["Command"]:
