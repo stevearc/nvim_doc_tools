@@ -19,6 +19,7 @@ def test_parse_function() -> None:
 ---@param varfun fun()
 ---@param varfunarg fun(arg1: string)
 ---@param varfunfull fun(arg1: string): integer
+---@param varfunvarargs fun(...: any)
 ---@param varunion nil|string
 ---@param varstrunion "a"|"b"
 ---@param varnesttable table
@@ -55,6 +56,7 @@ end
         apidoc.LuaParam("varfun", "fun()"),
         apidoc.LuaParam("varfunarg", "fun(arg1: string)"),
         apidoc.LuaParam("varfunfull", "fun(arg1: string): integer"),
+        apidoc.LuaParam("varfunvarargs", "fun(...: any)"),
         apidoc.LuaParam("varunion", "nil|string"),
         apidoc.LuaParam("varstrunion", '"a"|"b"'),
         apidoc.LuaParam(

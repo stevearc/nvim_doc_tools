@@ -127,7 +127,7 @@ lua_table = (
     Keyword("table") + "<" + lua_type + "," + Opt(White()) + lua_type + ">"
 ).setParseAction(lambda p: "".join(p.asList()))
 lua_func_param = (
-    Opt(White()) + varname + ":" + Opt(White()) + lua_type + Opt(White())
+    Opt(White()) + ("..." | varname) + ":" + Opt(White()) + lua_type + Opt(White())
 ).setParseAction(lambda p: "".join(p.asList()))
 lua_func = (
     Keyword("fun")
