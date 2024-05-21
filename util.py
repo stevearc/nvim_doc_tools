@@ -1,4 +1,5 @@
 """Utility methods for generating docs"""
+
 import json
 import re
 import subprocess
@@ -114,6 +115,7 @@ def read_section(
 
 def wrap(
     text: str,
+    # pylint: disable=W0621
     indent: int = 0,
     width: int = 80,
     line_end: str = "\n",

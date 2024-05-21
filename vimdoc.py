@@ -1,10 +1,4 @@
-import json
-import re
-import subprocess
-import textwrap
-from collections import defaultdict
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from .apidoc import LuaFunc, LuaParam, LuaReturn
 from .markdown import MD_BOLD_PAT, MD_LINE_BREAK_PAT, MD_LINK_PAT
@@ -178,6 +172,7 @@ def convert_md_section_to_vimdoc(
     return VimdocSection(section_name, section_tag, lines)
 
 
+# pylint: disable=W0621
 def format_vimdoc_returns(returns: List[LuaReturn], indent: int) -> List[str]:
     lines = []
     for r in returns:
@@ -194,6 +189,7 @@ def format_vimdoc_returns(returns: List[LuaReturn], indent: int) -> List[str]:
     return lines
 
 
+# pylint: disable=W0621
 def format_vimdoc_params(params: List[LuaParam], indent: int) -> List[str]:
     lines = []
     # Ignore params longer than 16 chars. They are outliers and will ruin the formatting

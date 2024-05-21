@@ -1,4 +1,3 @@
-import os
 import re
 from dataclasses import dataclass, field
 from typing import Callable, Iterable, List
