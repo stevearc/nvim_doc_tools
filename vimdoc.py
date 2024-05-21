@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 
-from .apidoc import LuaFunc, LuaParam, LuaReturn
+from .apidoc import LuaFunc, LuaParam, LuaReturn, LuaTypes
 from .markdown import MD_BOLD_PAT, MD_LINE_BREAK_PAT, MD_LINK_PAT
 from .util import Command, indent, read_section, trim_newlines, wrap
 
@@ -14,6 +14,7 @@ __all__ = [
     "convert_markdown_to_vimdoc",
     "convert_md_section_to_vimdoc",
     "render_vimdoc_api",
+    "render_vimdoc_api2",
 ]
 
 
@@ -190,7 +191,9 @@ def format_vimdoc_returns(returns: List[LuaReturn], indent: int) -> List[str]:
 
 
 # pylint: disable=W0621
-def format_vimdoc_params(params: List[LuaParam], indent: int) -> List[str]:
+def format_vimdoc_params(
+    params: List[LuaParam], types: LuaTypes, indent: int
+) -> List[str]:
     lines = []
     # Ignore params longer than 16 chars. They are outliers and will ruin the formatting
     max_param = (
@@ -212,13 +215,21 @@ def format_vimdoc_params(params: List[LuaParam], indent: int) -> List[str]:
             lines.extend(desc)
         else:
             lines.append(line.rstrip() + "\n")
-        if param.subparams:
-            lines.extend(format_vimdoc_params(param.subparams, 10))
+        subparams = param.get_subparams(types)
+        if subparams:
+            lines.extend(format_vimdoc_params(subparams, types, 10))
 
     return lines
 
 
 def render_vimdoc_api(project: str, funcs: List[LuaFunc]) -> List[str]:
+    types = LuaTypes()
+    return render_vimdoc_api2(project, funcs, LuaTypes())
+
+
+def render_vimdoc_api2(
+    project: str, funcs: List[LuaFunc], types: LuaTypes
+) -> List[str]:
     lines = []
     for func in funcs:
         if func.private or func.deprecated:
@@ -232,7 +243,7 @@ def render_vimdoc_api(project: str, funcs: List[LuaFunc]) -> List[str]:
         lines.append("\n")
         if func.params:
             lines.append(4 * " " + "Parameters:\n")
-            lines.extend(format_vimdoc_params(func.params, 6))
+            lines.extend(format_vimdoc_params(func.params, types, 6))
 
         if any([r.desc for r in func.returns]):
             lines.append(4 * " " + "Returns:\n")

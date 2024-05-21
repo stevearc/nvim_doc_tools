@@ -1,7 +1,7 @@
 def test_parse_function() -> None:
     from .. import apidoc
 
-    funcs = apidoc._parse_lines(
+    file = apidoc._parse_lines(
         """
 ---This is a function
 ---@param varnil nil
@@ -35,6 +35,8 @@ end
             keepends=True
         )
     )
+    funcs = file.functions
+
     assert len(funcs) == 1
     func = funcs[0]
     assert func.name == "M.myfunc"
@@ -71,4 +73,71 @@ end
     assert func.returns == [
         apidoc.LuaReturn("string"),
         apidoc.LuaReturn("user.Type", "a user type"),
+    ]
+
+
+def test_parse_field() -> None:
+    from .. import parser
+
+    field = parser.lua_field.parseString("@field fld_simple integer", parseAll=True)[0]
+    assert field is not None
+    assert field.name == "fld_simple"
+    assert field.type == "integer"
+    assert field.scope is None
+    assert field.desc == ""
+
+    field = parser.lua_field.parseString(
+        "@field private fld_scoped integer my desc", parseAll=True
+    )[0]
+    assert field is not None
+    assert field.name == "fld_scoped"
+    assert field.type == "integer"
+    assert field.scope == parser.Scope.PRIVATE
+    assert field.desc == "my desc"
+
+    field = parser.lua_field.parseString(
+        "@field [string] integer my desc", parseAll=True
+    )[0]
+    assert field is not None
+    assert field.name is None
+    assert field.key_type == "string"
+    assert field.type == "integer"
+    assert field.desc == "my desc"
+
+
+def test_parse_class() -> None:
+    from .. import parser
+
+    obj = parser.LuaClass.parse_lines(
+        """
+---@class test.Class
+---@field fld_simple string
+---@field private fld_scoped integer
+""".splitlines(
+            keepends=True
+        )
+    )
+
+    assert obj is not None
+    assert obj.name == "test.Class"
+    assert obj.parent is None
+    assert obj.fields == [
+        parser.LuaField(name="fld_simple", type="string"),
+        parser.LuaField(name="fld_scoped", type="integer", scope=parser.Scope.PRIVATE),
+    ]
+
+    obj = parser.LuaClass.parse_lines(
+        """
+---@class test.Class: test.Parent
+---@field fld_simple string
+""".splitlines(
+            keepends=True
+        )
+    )
+
+    assert obj is not None
+    assert obj.name == "test.Class"
+    assert obj.parent == "test.Parent"
+    assert obj.fields == [
+        parser.LuaField(name="fld_simple", type="string"),
     ]

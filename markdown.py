@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Iterable, Iterator, List, Union
 
-from .apidoc import LuaFunc
+from .apidoc import LuaFunc, LuaTypes
 from .util import Command
 
 MD_TITLE_PAT = re.compile(r"^#(#+) (.+)$", re.MULTILINE)
@@ -19,6 +19,7 @@ __all__ = [
     "format_md_table",
     "format_md_commands",
     "render_md_api",
+    "render_md_api2",
 ]
 
 
@@ -110,6 +111,11 @@ def format_md_commands(commands: List[Command]) -> List[str]:
 
 
 def render_md_api(funcs: List[LuaFunc], level: int = 3) -> List[str]:
+    types = LuaTypes()
+    return render_md_api2(funcs, LuaTypes(), level)
+
+
+def render_md_api2(funcs: List[LuaFunc], types: LuaTypes, level: int = 3) -> List[str]:
     lines = []
     for func in funcs:
         if func.private or func.deprecated:
@@ -141,7 +147,7 @@ def render_md_api(funcs: List[LuaFunc], level: int = 3) -> List[str]:
                         "Desc": desc,
                     }
                 )
-                for subp in param.subparams:
+                for subp in param.get_subparams(types):
                     any_subparams = True
                     ftype = subp.type.replace("|", r"\|")
                     desc = VIMDOC_LINK_PAT.sub(r"\1", subp.desc)
