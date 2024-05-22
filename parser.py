@@ -329,6 +329,7 @@ lua_field = (
 
 lua_class = (
     Suppress("@class")
+    + Suppress(Opt("(exact)"))
     + Regex(r"[^\s:]+").set_results_name("name")
     + Opt(Suppress(":") + Regex(r"\S+").set_results_name("parent"))
     + Suppress(LineEnd())

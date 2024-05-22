@@ -128,6 +128,22 @@ def test_parse_class() -> None:
 
     obj = parser.LuaClass.parse_lines(
         """
+---@class (exact) test.Class
+---@field fld_simple string
+""".splitlines(
+            keepends=True
+        )
+    )
+
+    assert obj is not None
+    assert obj.name == "test.Class"
+    assert obj.parent is None
+    assert obj.fields == [
+        parser.LuaField(name="fld_simple", type="string"),
+    ]
+
+    obj = parser.LuaClass.parse_lines(
+        """
 ---@class test.Class: test.Parent
 ---@field fld_simple string
 """.splitlines(
