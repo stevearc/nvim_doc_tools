@@ -48,6 +48,7 @@ class LuaFile:
 @dataclass
 class LuaClass:
     name: str
+    desc: str = ""
     parent: Optional[str] = None
     fields: List["LuaField"] = field(default_factory=list)
 
@@ -55,16 +56,22 @@ class LuaClass:
     def parse_lines(cls, lines: List[str]) -> Optional["LuaClass"]:
         # Strip off the leading comment
         lines = [line[3:] for line in lines]
+        desc_lines = []
+        while lines and not lines[0].startswith("@"):
+            desc_lines.append(lines.pop(0))
         try:
             p = lua_class.parseString("".join(lines), parseAll=True)
         except ParseException as e:
             return None
-        return cls.from_parser(p)
+        return cls.from_parser(p, "".join(desc_lines))
 
     @classmethod
-    def from_parser(cls: Type["LuaClass"], parse_result: ParseResults) -> "LuaClass":
+    def from_parser(
+        cls: Type["LuaClass"], parse_result: ParseResults, desc: str
+    ) -> "LuaClass":
         return cls(
             parse_result.get("name"),
+            desc,
             parent=parse_result.get("parent"),
             fields=parse_result.get("fields").as_list(),
         )
@@ -94,9 +101,12 @@ class LuaField:
 
     @classmethod
     def from_parser(cls: Type["LuaField"], parse_result: ParseResults) -> "LuaField":
+        ptype = parse_result["type"]
+        if "optional" in parse_result:
+            ptype = "nil|" + ptype
         return cls(
             name=parse_result.get("name"),
-            type=parse_result.get("type"),
+            type=ptype,
             key_type=parse_result.get("key_type"),
             desc=parse_result.get("desc", ""),
             scope=parse_result.get("scope"),
@@ -315,11 +325,13 @@ lua_field = (
         | (
             scope.set_results_name("scope")
             + varname.set_results_name("name")
+            + Opt(Literal("?")).set_results_name("optional")
             + lua_type.set_results_name("type")
             + Regex(".*").set_results_name("desc")
         )
         | (
             varname.set_results_name("name")
+            + Opt(Literal("?")).set_results_name("optional")
             + lua_type.set_results_name("type")
             + Regex(".*").set_results_name("desc")
         )

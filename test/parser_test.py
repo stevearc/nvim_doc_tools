@@ -113,6 +113,7 @@ def test_parse_class() -> None:
 ---@class test.Class
 ---@field fld_simple string
 ---@field private fld_scoped integer
+---@field fld_opt? integer
 """.splitlines(
             keepends=True
         )
@@ -124,6 +125,7 @@ def test_parse_class() -> None:
     assert obj.fields == [
         parser.LuaField(name="fld_simple", type="string"),
         parser.LuaField(name="fld_scoped", type="integer", scope=parser.Scope.PRIVATE),
+        parser.LuaField(name="fld_opt", type="nil|integer"),
     ]
 
     obj = parser.LuaClass.parse_lines(
