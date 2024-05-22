@@ -1,10 +1,22 @@
 import os
 import re
-from typing import Callable, Iterable, List
+from typing import Callable, Iterable, List, Optional
 
-from .parser import LuaClass, LuaField, LuaFile, LuaFunc, LuaParam, LuaReturn, LuaTypes
+from pyparsing import ParseException
+
+from .parser import (
+    LuaClass,
+    LuaField,
+    LuaFile,
+    LuaFunc,
+    LuaParam,
+    LuaReturn,
+    LuaTypes,
+    ParseError,
+)
 
 FN_RE = re.compile(r"^M\.(\w+)\s*=|^function ([A-Z][A-Za-z0-9_:\.]*)\s*\(")
+ANNOTATION_RE = re.compile(r"^---(@\w+)")
 
 __all__ = [
     "LuaTypes",
@@ -19,34 +31,45 @@ __all__ = [
 ]
 
 
+def parse_luadocs(peek: Optional[str], file: LuaFile, lines: List[str]) -> None:
+    annotations = set([])
+    for line in lines:
+        m = ANNOTATION_RE.match(line)
+        if m:
+            annotations.add(m[1])
+
+    try:
+        fn = peek and FN_RE.match(peek)
+        if fn and (
+            "@param" in annotations or "@return" in annotations or not annotations
+        ):
+            func = LuaFunc.parse_annotation(fn[1] or fn[2], lines)
+            if func is not None:
+                func.raw_annotation = lines
+                file.functions.append(func)
+        elif "@class" in annotations:
+            c = LuaClass.parse_lines(lines)
+            if c is not None:
+                file.classes.append(c)
+    except ParseException as e:
+        err_lines = [l for l in lines]
+        if peek:
+            err_lines.append(peek)
+        file.errors.append(ParseError(e, err_lines))
+
+
 def _parse_lines(lines: Iterable[str]) -> "LuaFile":
-    funcs = []
-    classes = []
+    file = LuaFile()
     chunk = []
     for line in lines:
         if line.startswith("---"):
             chunk.append(line)
         elif chunk:
-            m = FN_RE.match(line)
-            if m:
-                # temporary hack: ignore @type module variables
-                if any([c.startswith("---@type") for c in chunk]):
-                    chunk = []
-                    continue
-                func = LuaFunc.parse_annotation(m[1] or m[2], chunk)
-                if func is not None:
-                    func.raw_annotation = chunk
-                    funcs.append(func)
-            else:
-                c = LuaClass.parse_lines(chunk)
-                if c is not None:
-                    classes.append(c)
-
+            parse_luadocs(line, file, chunk)
             chunk = []
-    return LuaFile(
-        functions=funcs,
-        classes=classes,
-    )
+    if chunk:
+        parse_luadocs(None, file, chunk)
+    return file
 
 
 def parse_functions(filename: str) -> List[LuaFunc]:

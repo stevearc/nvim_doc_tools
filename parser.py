@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Dict, List, Optional, Type
 
 from pyparsing import (
+    Combine,
     Forward,
     Keyword,
     LineEnd,
@@ -21,9 +22,9 @@ from pyparsing import (
     ZeroOrMore,
     alphanums,
     alphas,
-    delimitedList,
+    delimited_list,
+    nums,
 )
-from pyparsing.exceptions import ParseException
 
 FN_RE = re.compile(r"^M\.(\w+)\s*=|^function ([A-Z][A-Za-z0-9_:\.]*)\s*\(")
 
@@ -43,6 +44,16 @@ class LuaTypes:
 class LuaFile:
     functions: List["LuaFunc"] = field(default_factory=list)
     classes: List["LuaClass"] = field(default_factory=list)
+    errors: List["ParseError"] = field(default_factory=list)
+
+
+@dataclass
+class ParseError:
+    error: Exception
+    lines: List[str]
+
+    def __str__(self):
+        return f"{self.error}\n{''.join(self.lines)}"
 
 
 @dataclass
@@ -53,16 +64,13 @@ class LuaClass:
     fields: List["LuaField"] = field(default_factory=list)
 
     @classmethod
-    def parse_lines(cls, lines: List[str]) -> Optional["LuaClass"]:
+    def parse_lines(cls, lines: List[str]) -> "LuaClass":
         # Strip off the leading comment
         lines = [line[3:] for line in lines]
         desc_lines = []
         while lines and not lines[0].startswith("@"):
             desc_lines.append(lines.pop(0))
-        try:
-            p = lua_class.parseString("".join(lines), parseAll=True)
-        except ParseException as e:
-            return None
+        p = lua_class.parseString("".join(lines), parseAll=True)
         return cls.from_parser(p, "".join(desc_lines))
 
     @classmethod
@@ -133,13 +141,10 @@ class LuaFunc:
     raw_annotation: List[str] = field(default_factory=list)
 
     @classmethod
-    def parse_annotation(cls, name: str, lines: List[str]) -> Optional["LuaFunc"]:
+    def parse_annotation(cls, name: str, lines: List[str]) -> "LuaFunc":
         # Strip off the leading comment
         lines = [line[3:] for line in lines]
-        try:
-            p = annotation.parseString("".join(lines), parseAll=True)
-        except ParseException as e:
-            return None
+        p = annotation.parseString("".join(lines), parseAll=True)
         params = []
         returns = []
         for item in p.as_list():
@@ -206,6 +211,11 @@ class LuaReturn:
         return cls(name, "".join(desc))
 
 
+def combined_list(expr, delim=","):
+    delimited_list_expr = expr + (delim + Opt(White()) + expr)[None, None]
+    return Combine(delimited_list_expr, adjacent=False)
+
+
 ParserElement.setDefaultWhitespaceChars(" \t")
 
 varname = Word(alphas, alphanums + "_")
@@ -218,6 +228,7 @@ primitive_type = (
     | Keyword("number")
     | Keyword("table")
     | QuotedString('"', unquote_results=False)
+    | Word(nums)
     | Keyword("any")
     | Regex(r"\w+\.[\w]+(\[\])?")
 )
@@ -232,18 +243,29 @@ lua_list = (
 lua_table = (
     Keyword("table") + "<" + lua_type + "," + Opt(White()) + lua_type + ">"
 ).set_parse_action(lambda p: "".join(p.as_list()))
+lua_table_keyval = varname + Opt(Literal("?")) + ":" + Opt(White()) + lua_type
+table_literal = Combine(
+    Literal("{") + combined_list(lua_table_keyval) + Literal("}"), adjacent=False
+)
+
 lua_func_param = (
-    Opt(White()) + ("..." | varname) + ":" + Opt(White()) + lua_type + Opt(White())
+    Opt(White())
+    + (Literal("...") | varname)
+    + Opt("?")
+    + ":"
+    + Opt(White())
+    + lua_type
+    + Opt(White())
 ).set_parse_action(lambda p: "".join(p.as_list()))
 lua_func = (
     Keyword("fun")
     + "("
-    + Opt(delimitedList(lua_func_param, combine=True))
+    + Opt(delimited_list(lua_func_param, combine=True))
     + ")"
     + Opt((":") + Opt(White()) + lua_type)
 ).set_parse_action(lambda p: "".join(p.as_list()))
-non_union_types = lua_list | lua_table | lua_func | primitive_type
-union_type = delimitedList(non_union_types, delim="|").set_parse_action(
+non_union_types = lua_list | lua_table | table_literal | lua_func | primitive_type
+union_type = delimited_list(non_union_types, delim="|").set_parse_action(
     lambda p: "|".join(p.as_list())
 )
 lua_type <<= union_type | non_union_types
@@ -260,7 +282,7 @@ subparam = (
 ).set_parse_action(LuaParam.from_parser)
 tag_param = (
     Suppress("@param")
-    + varname.set_results_name("name")
+    + (Literal("...") | varname).set_results_name("name")
     + Opt(Literal("?")).set_results_name("optional")
     + lua_type.set_results_name("type")
     + Opt(Regex(".+").set_results_name("desc"))

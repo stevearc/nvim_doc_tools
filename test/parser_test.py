@@ -11,6 +11,7 @@ def test_parse_function() -> None:
 ---@param varboolean boolean this is a boolean
 ---@param varnumber number this is a number
 ---@param vartable table this is a table
+---@param vartablelit {foo: string, bar?: integer} this is a table
 ---@param varany any this is any value
 ---@param varuser user.Type this is a user type
 ---@param varstrlist string[]
@@ -18,10 +19,12 @@ def test_parse_function() -> None:
 ---@param vartblmap table<string, integer[]>
 ---@param varfun fun()
 ---@param varfunarg fun(arg1: string)
+---@param varfunoptarg fun(arg1?: string)
 ---@param varfunfull fun(arg1: string): integer
 ---@param varfunvarargs fun(...: any)
 ---@param varunion nil|string
 ---@param varstrunion "a"|"b"
+---@param ... any
 ---@param varnesttable table
 ---    prop1 string a nested table prop
 ---    prop2 integer[]
@@ -50,6 +53,9 @@ end
         apidoc.LuaParam("varboolean", "boolean", "this is a boolean"),
         apidoc.LuaParam("varnumber", "number", "this is a number"),
         apidoc.LuaParam("vartable", "table", "this is a table"),
+        apidoc.LuaParam(
+            "vartablelit", "{foo: string, bar?: integer}", "this is a table"
+        ),
         apidoc.LuaParam("varany", "any", "this is any value"),
         apidoc.LuaParam("varuser", "user.Type", "this is a user type"),
         apidoc.LuaParam("varstrlist", "string[]"),
@@ -57,10 +63,12 @@ end
         apidoc.LuaParam("vartblmap", "table<string, integer[]>"),
         apidoc.LuaParam("varfun", "fun()"),
         apidoc.LuaParam("varfunarg", "fun(arg1: string)"),
+        apidoc.LuaParam("varfunoptarg", "fun(arg1?: string)"),
         apidoc.LuaParam("varfunfull", "fun(arg1: string): integer"),
         apidoc.LuaParam("varfunvarargs", "fun(...: any)"),
         apidoc.LuaParam("varunion", "nil|string"),
         apidoc.LuaParam("varstrunion", '"a"|"b"'),
+        apidoc.LuaParam("...", "any"),
         apidoc.LuaParam(
             "varnesttable",
             "table",
