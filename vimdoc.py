@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple
 
 from .apidoc import LuaFunc, LuaParam, LuaReturn, LuaTypes
 from .markdown import MD_BOLD_PAT, MD_LINE_BREAK_PAT, MD_LINK_PAT
+from .parser import AliasValue
 from .util import Command, indent, read_section, trim_newlines, wrap
 
 __all__ = [
@@ -211,13 +212,39 @@ def format_vimdoc_params(
         sub_indent = min(len(prefix), max_param + indent + 2)
         desc = wrap(param.desc, indent=len(line), sub_indent=sub_indent)
         if desc:
-            desc[0] = line + desc[0].lstrip()
+            if desc[0].isspace():
+                desc.insert(0, line.rstrip())
+            else:
+                desc[0] = line + desc[0].lstrip()
             lines.extend(desc)
         else:
             lines.append(line.rstrip() + "\n")
         subparams = param.get_subparams(types)
         if subparams:
-            lines.extend(format_vimdoc_params(subparams, types, 10))
+            lines.extend(format_vimdoc_params(subparams, types, indent + 4))
+
+        alias_vals = param.get_enum_values(types)
+        if alias_vals:
+            lines.extend(format_vimdoc_alias_values(alias_vals, indent + 4))
+
+    return lines
+
+
+def format_vimdoc_alias_values(params: List[AliasValue], indent: int) -> List[str]:
+    lines = []
+    # Ignore values longer than 12 chars. They are outliers and will ruin the formatting
+    max_param = (
+        max([len(val.value) for val in params if len(val.value) <= 12] or [8]) + 1
+    )
+    for val in params:
+        line = indent * " " + f"`{val.value}`" + "".ljust(max_param - len(val.value))
+        sub_indent = min(len(line) - 2, max_param + indent)
+        desc = wrap(val.desc, indent=len(line), sub_indent=sub_indent)
+        if desc:
+            desc[0] = line + desc[0].lstrip()
+            lines.extend(desc)
+        else:
+            lines.append(line.rstrip() + "\n")
 
     return lines
 

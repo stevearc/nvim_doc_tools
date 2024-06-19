@@ -5,6 +5,7 @@ from typing import Callable, Iterable, List, Optional
 from pyparsing import ParseException
 
 from .parser import (
+    LuaAlias,
     LuaClass,
     LuaField,
     LuaFile,
@@ -51,6 +52,10 @@ def parse_luadocs(peek: Optional[str], file: LuaFile, lines: List[str]) -> None:
             c = LuaClass.parse_lines(lines)
             if c is not None:
                 file.classes.append(c)
+        elif "@alias" in annotations:
+            a = LuaAlias.parse_lines(lines)
+            if a is not None:
+                file.aliases.append(a)
     except ParseException as e:
         err_lines = [l for l in lines]
         if peek:

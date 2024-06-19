@@ -123,7 +123,10 @@ def wrap(
 ) -> List[str]:
     if sub_indent is None:
         sub_indent = indent
-    return [
+    break_at_start = indent >= width
+    if break_at_start:
+        indent = sub_indent
+    ret = [
         line + line_end
         for line in textwrap.wrap(
             text,
@@ -132,6 +135,9 @@ def wrap(
             width=width,
         )
     ]
+    if break_at_start:
+        ret.insert(0, line_end)
+    return ret
 
 
 def trim_newlines(lines: List[str]) -> List[str]:

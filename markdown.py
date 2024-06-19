@@ -158,6 +158,14 @@ def render_md_api2(funcs: List[LuaFunc], types: LuaTypes, level: int = 3) -> Lis
                             "": desc,
                         }
                     )
+                    for val in subp.get_enum_values(types):
+                        val_desc = VIMDOC_LINK_PAT.sub(r"\1", val.desc)
+                        rows.append(
+                            {
+                                "Desc": f"> `{val.value}`",
+                                "": val_desc,
+                            }
+                        )
 
             cols = ["Param", "Type", "Desc"]
             if any_subparams:

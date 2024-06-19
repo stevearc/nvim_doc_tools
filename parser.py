@@ -33,17 +33,21 @@ FN_RE = re.compile(r"^M\.(\w+)\s*=|^function ([A-Z][A-Za-z0-9_:\.]*)\s*\(")
 class LuaTypes:
     files: Dict[str, "LuaFile"] = field(default_factory=dict)
     classes: Dict[str, "LuaClass"] = field(default_factory=dict)
+    aliases: Dict[str, "LuaAlias"] = field(default_factory=dict)
 
     def add_file(self, filename: str, file: "LuaFile"):
         self.files[filename] = file
         for c in file.classes:
             self.classes[c.name] = c
+        for a in file.aliases:
+            self.aliases[a.name] = a
 
 
 @dataclass
 class LuaFile:
     functions: List["LuaFunc"] = field(default_factory=list)
     classes: List["LuaClass"] = field(default_factory=list)
+    aliases: List["LuaAlias"] = field(default_factory=list)
     errors: List["ParseError"] = field(default_factory=list)
 
 
@@ -96,6 +100,49 @@ class LuaClass:
                     )
                 )
         return params
+
+
+ALIAS_VAL_RE = re.compile(r"^\| '([^']+)'(?: # (.+))?$")
+
+
+@dataclass
+class LuaAlias:
+    name: str
+    values: List["AliasValue"] = field(default_factory=list)
+
+    @classmethod
+    def parse_lines(cls, lines: List[str]) -> Optional["LuaAlias"]:
+        # Strip off the leading comment
+        lines = [line[3:] for line in lines]
+        name = lines.pop(0).split()[1]
+        values = []
+        for line in lines:
+            match = ALIAS_VAL_RE.match(line)
+            if not match:
+                return None
+            values.append(AliasValue(match.group(1), match.group(2) or ""))
+
+        if not values:
+            return None
+        return cls(name, values)
+
+    def convert_to_subparams(self) -> List["LuaParam"]:
+        params = []
+        for val in self.values:
+            params.append(
+                LuaParam(
+                    "",
+                    val.value,
+                    desc=val.desc,
+                )
+            )
+        return params
+
+
+@dataclass
+class AliasValue:
+    value: str
+    desc: str = ""
 
 
 @dataclass
@@ -194,10 +241,24 @@ class LuaParam:
         if search_type.startswith("nil|"):
             search_type = search_type[4:]
 
-        cls = types.classes.get(search_type)
-        if cls is None:
-            return []
-        return cls.convert_to_subparams()
+        clazz = types.classes.get(search_type)
+        if clazz is not None:
+            return clazz.convert_to_subparams()
+
+        return []
+
+    def get_enum_values(self, types: LuaTypes) -> List["AliasValue"]:
+        # Many times a parameter with a custom class type will be optional, so the type
+        # string will start with "nil|"
+        search_type = self.type
+        if search_type.startswith("nil|"):
+            search_type = search_type[4:]
+
+        alias = types.aliases.get(search_type)
+        if alias is not None:
+            return alias.values
+
+        return []
 
 
 @dataclass
