@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Iterable, Iterator, List, Union
 
-from .apidoc import LuaFunc, LuaTypes
+from .apidoc import LuaFunc, LuaTypes, LuaParam
 from .util import Command
 
 MD_TITLE_PAT = re.compile(r"^#(#+) (.+)$", re.MULTILINE)
@@ -111,9 +111,33 @@ def format_md_commands(commands: List[Command]) -> List[str]:
 
 
 def render_md_api(funcs: List[LuaFunc], level: int = 3) -> List[str]:
-    types = LuaTypes()
     return render_md_api2(funcs, LuaTypes(), level)
 
+def params_to_rows(params: List[LuaParam], types: LuaTypes, indent: str = '') -> List[Dict]:
+    rows = []
+    for param in params:
+        ftype = param.type.replace("|", r"\|")
+        # Replace vimdoc links |target|
+        desc = VIMDOC_LINK_PAT.sub(r"\1", param.desc)
+        rows.append(
+            {
+                "Param": indent + param.name,
+                "Type": f"`{ftype}`",
+                "Desc": desc,
+            }
+        )
+        sub_params = param.get_subparams(types)
+        if sub_params:
+            rows.extend(params_to_rows(sub_params, types, indent = indent + '>'))
+        for val in param.get_enum_values(types):
+            val_desc = VIMDOC_LINK_PAT.sub(r"\1", val.desc)
+            rows.append(
+                {
+                    "Type": f"`{val.value}`",
+                    "Desc": val_desc,
+                }
+            )
+    return rows
 
 def render_md_api2(funcs: List[LuaFunc], types: LuaTypes, level: int = 3) -> List[str]:
     lines = []
@@ -133,43 +157,9 @@ def render_md_api2(funcs: List[LuaFunc], types: LuaTypes, level: int = 3) -> Lis
             lines.append("\n\n")
         else:
             lines.append("\n\n")
-        any_subparams = False
         if func.params:
-            rows = []
-            for param in func.params:
-                ftype = param.type.replace("|", r"\|")
-                # Replace vimdoc links |target|
-                desc = VIMDOC_LINK_PAT.sub(r"\1", param.desc)
-                rows.append(
-                    {
-                        "Param": param.name,
-                        "Type": f"`{ftype}`",
-                        "Desc": desc,
-                    }
-                )
-                for subp in param.get_subparams(types):
-                    any_subparams = True
-                    ftype = subp.type.replace("|", r"\|")
-                    desc = VIMDOC_LINK_PAT.sub(r"\1", subp.desc)
-                    rows.append(
-                        {
-                            "Type": subp.name,
-                            "Desc": f"`{ftype}`",
-                            "": desc,
-                        }
-                    )
-                    for val in subp.get_enum_values(types):
-                        val_desc = VIMDOC_LINK_PAT.sub(r"\1", val.desc)
-                        rows.append(
-                            {
-                                "Desc": f"> `{val.value}`",
-                                "": val_desc,
-                            }
-                        )
-
+            rows = params_to_rows(func.params, types)
             cols = ["Param", "Type", "Desc"]
-            if any_subparams:
-                cols.append("")
             lines.extend(format_md_table(rows, cols))
         if any([r.desc for r in func.returns]):
             lines.extend(["\n", "Returns:\n", "\n"])
