@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Iterable, Iterator, List, Union
 
-from .apidoc import LuaFunc, LuaTypes, LuaParam
+from .apidoc import LuaFunc, LuaParam, LuaTypes
 from .util import Command
 
 MD_TITLE_PAT = re.compile(r"^#(#+) (.+)$", re.MULTILINE)
@@ -113,7 +113,10 @@ def format_md_commands(commands: List[Command]) -> List[str]:
 def render_md_api(funcs: List[LuaFunc], level: int = 3) -> List[str]:
     return render_md_api2(funcs, LuaTypes(), level)
 
-def params_to_rows(params: List[LuaParam], types: LuaTypes, indent: str = '') -> List[Dict]:
+
+def params_to_rows(
+    params: List[LuaParam], types: LuaTypes, indent: str = ""
+) -> List[Dict]:
     rows = []
     for param in params:
         ftype = param.type.replace("|", r"\|")
@@ -128,7 +131,7 @@ def params_to_rows(params: List[LuaParam], types: LuaTypes, indent: str = '') ->
         )
         sub_params = param.get_subparams(types)
         if sub_params:
-            rows.extend(params_to_rows(sub_params, types, indent = indent + '>'))
+            rows.extend(params_to_rows(sub_params, types, indent=indent + ">"))
         for val in param.get_enum_values(types):
             val_desc = VIMDOC_LINK_PAT.sub(r"\1", val.desc)
             rows.append(
@@ -138,6 +141,7 @@ def params_to_rows(params: List[LuaParam], types: LuaTypes, indent: str = '') ->
                 }
             )
     return rows
+
 
 def render_md_api2(funcs: List[LuaFunc], types: LuaTypes, level: int = 3) -> List[str]:
     lines = []
