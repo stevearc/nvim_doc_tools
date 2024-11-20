@@ -149,7 +149,7 @@ def trim_newlines(lines: List[str]) -> List[str]:
 
 
 def read_nvim_json(lua: str) -> Any:
-    cmd = f"nvim --headless --noplugin -u /dev/null -c 'set runtimepath+=.' -c 'lua print(vim.json.encode({lua}))' +qall"
+    cmd = f"nvim --headless --noplugin -u /dev/null -c 'set runtimepath=.' -c 'lua print(vim.json.encode({lua}))' +qall"
     print(cmd)
     code, txt = subprocess.getstatusoutput(cmd)
     if code != 0:
