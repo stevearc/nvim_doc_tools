@@ -291,7 +291,7 @@ primitive_type = (
     | QuotedString('"', unquote_results=False)
     | Word(nums)
     | Keyword("any")
-    | Regex(r"\w+\.[\w]+(\[\])?")
+    | Regex(r"\w+(\.[\w]+)+(\[\])?")
 )
 lua_list = (
     Keyword("string[]")
