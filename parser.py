@@ -42,6 +42,18 @@ class LuaTypes:
         for a in file.aliases:
             self.aliases[a.name] = a
 
+    def get_enum_values(self, search_type: str) -> List["AliasValue"]:
+        # Many times a parameter with a custom class type will be optional, so the type
+        # string will start with "nil|"
+        if search_type.startswith("nil|"):
+            search_type = search_type[4:]
+
+        alias = self.aliases.get(search_type)
+        if alias is not None:
+            return alias.values
+
+        return []
+
 
 @dataclass
 class LuaFile:
@@ -64,6 +76,8 @@ class ParseError:
 class LuaClass:
     name: str
     desc: str = ""
+    # If true, the class should not be exploded in parameter documentation
+    opaque: bool = False
     parent: Optional[str] = None
     fields: List["LuaField"] = field(default_factory=list)
 
@@ -84,14 +98,17 @@ class LuaClass:
         return cls(
             parse_result.get("name"),
             desc,
+            opaque=parse_result.get("opaque"),
             parent=parse_result.get("parent"),
             fields=parse_result.get("fields").as_list(),
         )
 
     def convert_to_subparams(self) -> List["LuaParam"]:
-        params = []
+        params: List["LuaParam"] = []
+        if self.opaque:
+            return params
         for fld in self.fields:
-            if fld.name and (fld.scope is None or fld.scope == Scope.PUBLIC):
+            if fld.name and fld.is_public:
                 params.append(
                     LuaParam(
                         fld.name,
@@ -166,6 +183,10 @@ class LuaField:
             desc=parse_result.get("desc", ""),
             scope=parse_result.get("scope"),
         )
+
+    @property
+    def is_public(self) -> bool:
+        return self.scope is None or self.scope == Scope.PUBLIC
 
 
 class Scope(Enum):
@@ -247,19 +268,6 @@ class LuaParam:
 
         return []
 
-    def get_enum_values(self, types: LuaTypes) -> List["AliasValue"]:
-        # Many times a parameter with a custom class type will be optional, so the type
-        # string will start with "nil|"
-        search_type = self.type
-        if search_type.startswith("nil|"):
-            search_type = search_type[4:]
-
-        alias = types.aliases.get(search_type)
-        if alias is not None:
-            return alias.values
-
-        return []
-
 
 @dataclass
 class LuaReturn:
@@ -279,7 +287,7 @@ def combined_list(expr, delim=","):
 
 ParserElement.setDefaultWhitespaceChars(" \t")
 
-varname = Word(alphas, alphanums + "_")
+varname = Word(alphas + "_", alphanums + "_")
 lua_type = Forward()
 primitive_type = (
     Keyword("nil")
@@ -428,5 +436,6 @@ lua_class = (
     + Regex(r"[^\s:]+").set_results_name("name")
     + Opt(Suppress(":") + Regex(r"\S+").set_results_name("parent"))
     + Suppress(LineEnd())
+    + Opt(Keyword("@opaque") + Suppress(LineEnd())).set_results_name("opaque")
     + OneOrMore(lua_field).set_results_name("fields")
 )

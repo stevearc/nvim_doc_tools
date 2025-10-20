@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Iterable, Iterator, List, Union
 
-from .apidoc import LuaFunc, LuaParam, LuaTypes
+from .apidoc import LuaClass, LuaField, LuaFunc, LuaParam, LuaTypes
 from .util import Command
 
 MD_TITLE_PAT = re.compile(r"^#(#+) (.+)$", re.MULTILINE)
@@ -20,6 +20,7 @@ __all__ = [
     "format_md_commands",
     "render_md_api",
     "render_md_api2",
+    "render_md_classes",
 ]
 
 
@@ -132,7 +133,36 @@ def params_to_rows(
         sub_params = param.get_subparams(types)
         if sub_params:
             rows.extend(params_to_rows(sub_params, types, indent=indent + ">"))
-        for val in param.get_enum_values(types):
+        for val in types.get_enum_values(param.type):
+            val_desc = VIMDOC_LINK_PAT.sub(r"\1", val.desc)
+            rows.append(
+                {
+                    "Type": f"`{val.value}`",
+                    "Desc": val_desc,
+                }
+            )
+    return rows
+
+
+def fields_to_rows(
+    fields: List[LuaField], types: LuaTypes, indent: str = ""
+) -> List[Dict]:
+    rows = []
+    for field in fields:
+        ftype = field.type.replace("|", r"\|")
+        if field.key_type is not None or not field.is_public:
+            # TODO: document key types on classes
+            continue
+        # Replace vimdoc links |target|
+        desc = VIMDOC_LINK_PAT.sub(r"\1", field.desc)
+        rows.append(
+            {
+                "Field": indent + (field.name or ""),
+                "Type": f"`{ftype}`",
+                "Desc": desc,
+            }
+        )
+        for val in types.get_enum_values(field.type):
             val_desc = VIMDOC_LINK_PAT.sub(r"\1", val.desc)
             rows.append(
                 {
@@ -181,5 +211,25 @@ def render_md_api2(funcs: List[LuaFunc], types: LuaTypes, level: int = 3) -> Lis
             lines.append("```lua\n")
             lines.append(func.example)
             lines.append("```\n")
+        lines.append("\n")
+    return lines
+
+
+def render_md_classes(
+    classes: List[LuaClass], types: LuaTypes, level: int = 3
+) -> List[str]:
+    lines = []
+    for c in classes:
+        lines.append(level * "#" + " " + c.name + "\n")
+        lines.append("\n")
+        if c.parent:
+            lines.append(f"extends {c.parent}\n")
+        if c.desc:
+            lines.append(c.desc + "\n")
+            lines.append("\n")
+        if c.fields:
+            rows = fields_to_rows(c.fields, types)
+            cols = ["Field", "Type", "Desc"]
+            lines.extend(format_md_table(rows, cols))
         lines.append("\n")
     return lines

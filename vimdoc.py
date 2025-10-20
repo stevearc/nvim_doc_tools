@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 
-from .apidoc import LuaFunc, LuaParam, LuaReturn, LuaTypes
+from .apidoc import LuaClass, LuaField, LuaFunc, LuaParam, LuaReturn, LuaTypes
 from .markdown import MD_BOLD_PAT, MD_LINE_BREAK_PAT, MD_LINK_PAT
 from .parser import AliasValue
 from .util import Command, indent, read_section, trim_newlines, wrap
@@ -16,6 +16,7 @@ __all__ = [
     "convert_md_section_to_vimdoc",
     "render_vimdoc_api",
     "render_vimdoc_api2",
+    "render_vimdoc_classes",
 ]
 
 
@@ -223,9 +224,51 @@ def format_vimdoc_params(
         if subparams:
             lines.extend(format_vimdoc_params(subparams, types, indent + 4))
 
-        alias_vals = param.get_enum_values(types)
+        alias_vals = types.get_enum_values(param.type)
         if alias_vals:
             lines.extend(format_vimdoc_alias_values(alias_vals, indent + 4))
+
+    return lines
+
+
+# pylint: disable=W0621
+def format_vimdoc_fields(
+    fields: List[LuaField], types: LuaTypes, indent: int
+) -> List[str]:
+    lines = []
+    # Ignore fields longer than 16 chars. They are outliers and will ruin the formatting
+    max_field = (
+        max(
+            [
+                len(field.name)
+                for field in fields
+                if field.name is not None and len(field.name) <= 16
+            ]
+            or [8]
+        )
+        + 1
+    )
+    for field in fields:
+        if field.name is None or not field.is_public:
+            continue
+        prefix = (
+            indent * " "
+            + "{"
+            + f"{field.name}"
+            + "}".ljust(max_field - len(field.name))
+            + " "
+        )
+        line = prefix + f"`{field.type}`" + " "
+        sub_indent = min(len(prefix), max_field + indent + 2)
+        desc = wrap(field.desc, indent=len(line), sub_indent=sub_indent)
+        if desc:
+            if desc[0].isspace():
+                desc.insert(0, line.rstrip())
+            else:
+                desc[0] = line + desc[0].lstrip()
+            lines.extend(desc)
+        else:
+            lines.append(line.rstrip() + "\n")
 
     return lines
 
@@ -250,7 +293,6 @@ def format_vimdoc_alias_values(params: List[AliasValue], indent: int) -> List[st
 
 
 def render_vimdoc_api(project: str, funcs: List[LuaFunc]) -> List[str]:
-    types = LuaTypes()
     return render_vimdoc_api2(project, funcs, LuaTypes())
 
 
@@ -285,5 +327,23 @@ def render_vimdoc_api2(
             lines.append(4 * " " + "Examples: >lua\n")
             lines.extend(indent(func.example.splitlines(), 6))
             lines.append("<\n")
+        lines.append("\n")
+    return lines
+
+
+def render_vimdoc_classes(classes: List[LuaClass], types: LuaTypes) -> List[str]:
+    lines = []
+    for c in classes:
+        title = c.name
+        if c.parent:
+            title += f"extends {c.parent}"
+        lines.append(leftright(title, f"*{c.name}*"))
+        lines.append("\n")
+        if c.desc:
+            lines.append(c.desc + "\n")
+            lines.append("\n")
+        if c.fields:
+            lines.append(4 * " " + "Fields:\n")
+            lines.extend(format_vimdoc_fields(c.fields, types, 6))
         lines.append("\n")
     return lines
